@@ -8,8 +8,6 @@
 struct SQLclient_Postgres {
     // see http://www.postgresql.org/docs/8.0/static/libpq-example.html
 
-    typedef enum { TRANS_None = 0, TRANS_Transaction, TRANS_Cursor } e_TransactionMode;
-
     // Internal exception which adds a Postgres error message.
     struct PGResultException : public std::runtime_error {
 	PGResultException (std::string mesg, PGresult* res)
@@ -112,12 +110,11 @@ struct SQLclient_Postgres {
 	}
     }
 
-    void execute (std::string cmd,
-		  e_TransactionMode transactionMode = TRANS_None) {
+    void execute (std::string cmd, bool useCursor = false) {
 
 	PGresult *res;
 	// Fetch rows, either via cursor or directly.
-	if (transactionMode == TRANS_Cursor) {
+	if (useCursor) {
 
 	    // Prepend cmd with a cursor named "theCursor".
 	    cmd.insert(0, "DECLARE theCursor CURSOR FOR ");
@@ -155,7 +152,7 @@ struct SQLclient_Postgres {
 	PQclear(res);
 
 	/* Close the cursor. */
-	if (transactionMode == TRANS_Cursor) {
+	if (useCursor) {
 	    res = Exec(conn, "CLOSE theCursor");
 	    PQclear(res);
 	}
@@ -172,8 +169,7 @@ int main(int argc, char *argv[]) {
 		pg.execute("SELECT * FROM pg_database");
 		{
 		    SQLclient_Postgres::Transaction tr2 = pg.getTransaction();
-		    pg.execute("SELECT * FROM pg_database",
-			       SQLclient_Postgres::TRANS_Cursor);
+		    pg.execute("SELECT * FROM pg_database", true);
 		}
 		trans.commit();
 	    }
