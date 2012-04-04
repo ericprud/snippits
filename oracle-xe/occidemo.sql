@@ -23,7 +23,7 @@ All rights reserved. */
 
 @occidemod.sql
 
-connect scott/tiger
+connect DM/DM@//localhost/ORCL
 
 CREATE TABLE elements (
   element_name VARCHAR2(25),
@@ -219,27 +219,27 @@ COMMIT;
 /* OCCI AQ Objects */
 
 
-connect system/manager 
+-- connect system/manager@//localhost/ORCL
 
-grant aq_administrator_role, aq_user_role to scott;
-grant execute on dbms_aq to scott;
-grant execute on dbms_aqadm to scott;
+-- grant aq_administrator_role, aq_user_role to DM;
+-- grant execute on dbms_aq to DM;
+-- grant execute on dbms_aqadm to DM;
 
-BEGIN
-  dbms_aqadm.grant_system_privilege('ENQUEUE_ANY','scott',FALSE);
-  dbms_aqadm.grant_system_privilege('DEQUEUE_ANY','scott',FALSE);
-END;
-/
+-- BEGIN
+--   dbms_aqadm.grant_system_privilege('ENQUEUE_ANY','DM',FALSE);
+--   dbms_aqadm.grant_system_privilege('DEQUEUE_ANY','DM',FALSE);
+-- END;
+-- /
 
-connect scott/tiger
+-- connect DM/DM@//localhost/ORCL
 
-CREATE OR REPLACE TYPE scott_obj AS OBJECT
+CREATE OR REPLACE TYPE DM_obj AS OBJECT
 (a1 NUMBER, a2 VARCHAR2(25));
 /
 
 BEGIN
   dbms_aqadm.create_queue_table (
-  queue_table => 'scott.table01',
+  queue_table => 'DM.table01',
   queue_payload_type => 'RAW',
   comment => 'single-consumer',
   multiple_consumers => false,
@@ -251,7 +251,7 @@ END;
 BEGIN
   dbms_aqadm.create_queue (
   queue_name => 'queue01', 
-  queue_table=> 'scott.table01' 
+  queue_table=> 'DM.table01' 
 );
 END;
 /
@@ -262,7 +262,7 @@ END;
 
 BEGIN
   dbms_aqadm.create_queue_table (
-  queue_table => 'scott.table02',
+  queue_table => 'DM.table02',
   queue_payload_type => 'SYS.ANYDATA',
   comment => 'multi-consumer',
   multiple_consumers => true,
@@ -274,7 +274,7 @@ END;
 BEGIN
   dbms_aqadm.create_queue (
   queue_name => 'queue02',
-  queue_table=> 'scott.table02'
+  queue_table=> 'DM.table02'
 );
 END;
 /
@@ -285,8 +285,8 @@ END;
 
 BEGIN
   dbms_aqadm.create_queue_table (
-  queue_table => 'scott.table03',
-  queue_payload_type => 'scott_obj',
+  queue_table => 'DM.table03',
+  queue_payload_type => 'DM_obj',
   comment => 'multi-consumer',
   multiple_consumers => true,
   compatible => '8.1.0'
@@ -297,7 +297,7 @@ END;
 BEGIN
   dbms_aqadm.create_queue (
   queue_name => 'queue03',
-  queue_table=> 'scott.table03'
+  queue_table=> 'DM.table03'
 );
 END;
 /
@@ -308,7 +308,7 @@ END;
 
 BEGIN
   dbms_aqadm.create_queue_table (
-  queue_table => 'scott.table04',
+  queue_table => 'DM.table04',
   queue_payload_type => 'RAW',
   comment => 'multiple-consumer',
   multiple_consumers => true,
@@ -320,7 +320,7 @@ END;
 BEGIN
   dbms_aqadm.create_queue (
   queue_name => 'queue04',
-  queue_table=> 'scott.table04'
+  queue_table=> 'DM.table04'
 );
 END;
 /
@@ -333,13 +333,13 @@ Rem Add default local subscribers to the queues
 
 BEGIN
   dbms_aqadm.add_subscriber( queue_name=> 'queue03',
-           subscriber=> sys.aq$_agent('AGT1','scott.queue03', 0));
+           subscriber=> sys.aq$_agent('AGT1','DM.queue03', 0));
 END;
 /
 
 BEGIN
   dbms_aqadm.add_subscriber( queue_name=> 'queue04',
-           subscriber=> sys.aq$_agent('AGT1','scott.queue04', 0));
+           subscriber=> sys.aq$_agent('AGT1','DM.queue04', 0));
 END;
 /
 

@@ -1,6 +1,7 @@
 /* Copyright (c) 2001, 2010, Oracle and/or its affiliates. 
 All rights reserved. */
 /*
+CPATH=/usr/include/oracle/11.2/client64/ LIBRARY_PATH=/usr/lib/oracle/11.2/client64/lib/ make -f demo_xe.mk buildocci EXE=occidml OBJS=occidml.o && LD_LIBRARY_PATH=/usr/lib/oracle/11.2/client64/lib/ ./occidml
    NAME
      occidml.cpp - Basic DML Operations demo
 
@@ -242,9 +243,9 @@ class  occidml
 
 int main (void)
 {
-  string user = "scott";
-  string passwd = "tiger";
-  string db = "";
+  string user = "DM";
+  string passwd = "DM";
+  string db = "//localhost/ORCL";
   try{
   cout << "occidml - Exhibiting simple insert, delete & update operations" 
        << endl;
