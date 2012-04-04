@@ -125,30 +125,34 @@ struct SQLclient_Postgres {
 
 	    // Get all the data from the cursor.
 	    res = Exec(conn, "FETCH ALL IN theCursor");
-	    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	    if (PQresultStatus(res) != PGRES_TUPLES_OK && // SELECT
+		PQresultStatus(res) != PGRES_COMMAND_OK)  // non-SELECT
 		throw PGResultException("FETCH ALL failed: ", res);
 	}
 	else {
 
 	    // Simply execute the command.
 	    res = Exec(conn, cmd.c_str());
-	    if (PQresultStatus(res) != PGRES_TUPLES_OK)
+	    if (PQresultStatus(res) != PGRES_TUPLES_OK && // SELECT
+		PQresultStatus(res) != PGRES_COMMAND_OK)  // non-SELECT
 		throw PGResultException("EXEC failed: ", res);
 	}
 
-	/* Print out the attribute names. */
-	int nFields = PQnfields(res);
-	for (int i = 0; i < nFields; i++)
-	    printf("%-15s", PQfname(res, i));
-	printf("\n");
+	if (PQresultStatus(res) == PGRES_TUPLES_OK) {
+	    /* Print out the attribute names. */
+	    int nFields = PQnfields(res);
+	    for (int i = 0; i < nFields; i++)
+		printf("%-15s", PQfname(res, i));
+	    printf("\n");
 
-	/* Print out row values. */
-	for (int i = 0; i < PQntuples(res); i++) {
-	    for (int j = 0; j < nFields; j++)
-		printf("%-15s",PQgetvalue(res,i,j));
+	    /* Print out row values. */
+	    for (int i = 0; i < PQntuples(res); i++) {
+		for (int j = 0; j < nFields; j++)
+		    printf("%-15s",PQgetvalue(res,i,j));
+		printf("\n");
+	    }
 	    printf("\n");
 	}
-	printf("\n");
 	PQclear(res);
 
 	/* Close the cursor. */
@@ -164,20 +168,22 @@ int main(int argc, char *argv[]) {
 	    SQLclient_Postgres pg("dbname = eric");
 	    /* List the system catalog of databases (3x). */
 	    pg.execute("SELECT * FROM pg_database");
+	    SQLclient_Postgres::Transaction t3 = pg.getTransaction();
+	    pg.execute("create table foo (id int);");
+	    pg.execute("insert into foo (id) values (1);");
 	    {
-		SQLclient_Postgres::Transaction trans = pg.getTransaction();
-		pg.execute("SELECT * FROM pg_database");
+		SQLclient_Postgres::Transaction t1 = pg.getTransaction();
+		pg.execute("insert into foo (id) values (2);");
 		{
-		    SQLclient_Postgres::Transaction tr2 = pg.getTransaction();
-		    pg.execute("SELECT * FROM pg_database", true);
+		    SQLclient_Postgres::Transaction t2 = pg.getTransaction();
+		    pg.execute("insert into foo (id) values (3);");
 		}
-		trans.commit();
+		t1.commit();
+		pg.execute("insert into foo (id) values (4);");
+		pg.execute("select * from foo;", true);
 	    }
-	    // pg.execute("create table foo (id int);");
-	    // pg.execute("insert into foo (id) values (2);");
-	    // pg.execute("insert into foo (id) values (1);");
-	    // pg.execute("select * from foo;");
-	    // pg.execute("drop table foo;");
+	    pg.execute("SELECT *\n FROM blah blah blah;"); // fails -- roll back to no table
+	    pg.execute("drop table foo;"); // never reach here
 	} catch (std::runtime_error& e) {
 	    std::cerr << e.what();
 	    return 222;
