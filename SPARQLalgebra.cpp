@@ -17,6 +17,7 @@
 
 namespace result { struct Solution; } // forward decl for TermOrVar::matches
 
+
 namespace term {
 
     // Definition: RDF Term
@@ -108,36 +109,35 @@ namespace term {
 	}
 	bool operator== (const TermOrVar& r) const {
 	    switch (t) {
-	    case TermOrVar::Term_type: return r.t == TermOrVar::Term_type && term == r.term;
-	    case TermOrVar::Var_type:  return r.t == TermOrVar::Var_type  && var  == r.var;
+	    case Term_type: return r.t == Term_type && term == r.term;
+	    case Var_type:  return r.t == Var_type  && var  == r.var;
 	    default: assert(false);
 	    }
 	}
 	bool operator< (const TermOrVar& r) const {
 	    switch (t) {
-	    case TermOrVar::Term_type: {
+	    case Term_type: {
 		return
-		    r.t == TermOrVar::Term_type
+		    r.t == Term_type
 		    ? term < r.term
-		    : r.t < TermOrVar::Term_type;
+		    : r.t < Term_type;
 	    }
-	    case TermOrVar::Var_type: {
+	    case Var_type: {
 		return
-		    r.t == TermOrVar::Var_type
+		    r.t == Var_type
 		    ? var  < r.var
-		    : r.t < TermOrVar::Var_type;
+		    : r.t < Var_type;
 	    }
 	    default: assert(false);
 	    }
 	}
 	std::ostream& print (std::ostream& os) const {
 	    switch (t) {
-	    case TermOrVar::Term_type:  return os << term;
-	    case TermOrVar::Var_type:   return os << var;
+	    case Term_type:  return os << term;
+	    case Var_type:   return os << var;
 	    }
 	    assert(false);
 	}
-	bool matches(const Term& k, result::Solution*) const;
     };
 
     std::ostream& operator<< (std::ostream& os, const TermOrVar& tov) {
@@ -155,6 +155,7 @@ namespace term {
     };
 
 } // namespace term;
+
 
 namespace graph {
     struct Triple {
@@ -228,65 +229,14 @@ namespace graph {
     std::ostream& operator<< (std::ostream& os, const BGP& ref) {
 	return ref.print(os);
     }
-}
+} // namespace graph
 
-/* term::VarOrBNode captures the types serving as variables in a Solution.
-   Including BNodes allows one algorithm to handle both variable binding
-   and BNode-isomorphism.
- */
-namespace term {
-    struct VarOrBNode {
-	typedef enum { Var_type, BNode_type,  } Type;
-	Type t;
-	Var var;
-	B bnode;
-	VarOrBNode (Var var)
-	    : t(Var_type), var(var), bnode(B("!")) { check(); }
-	VarOrBNode (B bnode)
-	    : t(BNode_type), var(Var("!")), bnode(bnode) { check(); }
-	void check () {
-	    assert(t == Var_type || t == BNode_type);
-	}
-	bool operator== (const VarOrBNode& r) const {
-	    switch (VarOrBNode::t) {
-	    case VarOrBNode::Var_type:   return r.VarOrBNode::t == VarOrBNode::Var_type  && var  == r.var;
-	    case VarOrBNode::BNode_type: return r.VarOrBNode::t == VarOrBNode::BNode_type && bnode == r.bnode;
-	    default: assert(false);
-	    }
-	}
-	bool operator< (const VarOrBNode& r) const {
-	    switch (VarOrBNode::t) {
-	    case VarOrBNode::Var_type:   return r.VarOrBNode::t == VarOrBNode::Var_type  ? var  < r.var  : r.VarOrBNode::t < VarOrBNode::Var_type;
-	    case VarOrBNode::BNode_type: return r.VarOrBNode::t == VarOrBNode::BNode_type ? bnode < r.bnode : r.VarOrBNode::t < VarOrBNode::BNode_type;
-	    default: assert(false);																}
-	}
-	std::ostream& print (std::ostream& os) const {
-	    switch (VarOrBNode::t) {
-	    case VarOrBNode::Var_type:   return os << var;
-	    case VarOrBNode::BNode_type: return os << bnode;
-	    }
-	    assert(false);
-	}
-	bool matches(const Term& k, result::Solution*) const;
-    };
-    std::ostream& operator<< (std::ostream& os, const VarOrBNode& tov) {
-	return tov.print(os);
-    }
-} // namespace term
 
 namespace result {
 
     // μ
-    struct Solution : std::map<term::VarOrBNode, term::Term> {
-	Solution (std::initializer_list<std::map<term::VarOrBNode, term::Term>::value_type> l) : std::map<term::VarOrBNode, term::Term>(l) {  }
-	bool freeOrEquals (const term::VarOrBNode v, const term::Term k) {
-	    iterator it = find(v);
-	    if (it == end()) {
-		insert(std::make_pair(v, k));
-		return true;
-	    }
-	    return it->second == k;
-	}
+    struct Solution : std::map<term::Var, term::Term> {
+	Solution (std::initializer_list<std::map<term::Var, term::Term>::value_type> l) : std::map<term::Var, term::Term>(l) {  }
 	std::ostream& print (std::ostream& os) const {
 	    for (const_iterator it = begin(); it != end(); ++it) {
 		if (it != begin())
@@ -329,25 +279,6 @@ namespace result {
     }
 } // namespace result
 
-namespace term {
-    /* matches -- see if a TriplePattern term matches k in s.
-     */
-    bool TermOrVar::matches (const Term& k, result::Solution* s) const {
-	switch (t) {
-	case TermOrVar::Term_type: {
-	    switch (term.t) {
-	    case Term::I_type: return term == k;
-	    case Term::L_type: return term == k;
-	    case Term::B_type:
-		B b(term.lexicalForm);
-		return s->freeOrEquals(VarOrBNode(b), k);
-	    }
-	}
-	case TermOrVar::Var_type: return s->freeOrEquals(VarOrBNode(var), k);
-	}
-	assert(false);
-    }
-}
 
 namespace path {
     struct PathElt {
@@ -423,6 +354,7 @@ namespace path {
     };
 } // namespace path;
 
+
 namespace eval {
     result::Multiset eval (path::Path path) {
 	result::Multiset ret = result::Multiset::Multiset0; // 1 row, no bindings
@@ -432,22 +364,134 @@ namespace eval {
     // Definition: Basic Graph Pattern Matching
     // http://www.w3.org/TR/sparql11-query/#BGPsparql
     result::Multiset BasicGraphPatternMatching (graph::BGP& BGP, graph::Graph& G) {
-	result::Multiset ret = result::Multiset::Multiset0; // 1 row, no bindings
+	/* term::VarOrBNode captures the types serving as variables in a Solution.
+	   Including BNodes allows one algorithm to handle both variable binding
+	   and BNode-isomorphism.
+	*/
+	struct VarOrBNode {
+	    typedef enum { Var_type, BNode_type,  } Type;
+	    Type t;
+	    term::Var var;
+	    term::B bnode;
+
+	    VarOrBNode (term::Var var)
+		: t(Var_type), var(var), bnode(term::B("!")) { check(); }
+	    VarOrBNode (term::B bnode)
+		: t(BNode_type), var(term::Var("!")), bnode(bnode) { check(); }
+	    void check () {
+		assert(t == Var_type || t == BNode_type);
+	    }
+	    bool operator== (const VarOrBNode& r) const {
+		switch (t) {
+		case Var_type:   return r.t == Var_type   && var   == r.var;
+		case BNode_type: return r.t == BNode_type && bnode == r.bnode;
+		default: assert(false);
+		}
+	    }
+	    bool operator< (const VarOrBNode& r) const {
+		switch (t) {
+		case Var_type: {
+		    return
+			r.t == Var_type
+			? var < r.var
+			: r.t < Var_type;
+		}
+		case BNode_type: {
+		    return
+			r.t == BNode_type
+			? bnode < r.bnode
+			: r.t < BNode_type;
+		}
+		default: assert(false);																}
+	    }
+	    std::ostream& print (std::ostream& os) const {
+		switch (t) {
+		case Var_type:   return os << var;
+		case BNode_type: return os << bnode;
+		}
+		assert(false);
+	    }
+	};
+
+	/* Solution - same as result::Solution except it permits BNodes.
+	 */
+        struct Solution : std::map<VarOrBNode, term::Term> {
+	    Solution (std::initializer_list<std::map<VarOrBNode, term::Term>::value_type> l) : std::map<VarOrBNode, term::Term>(l) {  }
+	    bool freeOrEquals (const VarOrBNode v, const term::Term k) {
+		iterator it = find(v);
+		if (it == end()) {
+		    insert(std::make_pair(v, k));
+		    return true;
+		}
+		return it->second == k;
+	    }
+	    std::ostream& print (std::ostream& os) const {
+		for (const_iterator it = begin(); it != end(); ++it) {
+		    if (it != begin())
+			os << ", ";
+		    it->first.print(os);
+		    os << "=";
+		    it->second.print(os);		
+		}
+		return os;
+	    }
+	    bool matches (const term::TermOrVar fromTP, const term::Term& fromT) {
+		switch (fromTP.t) {
+		case term::TermOrVar::Term_type: {
+		    switch (fromTP.term.t) {
+		    case term::Term::I_type: return fromTP.term == fromT;
+		    case term::Term::L_type: return fromTP.term == fromT;
+		    case term::Term::B_type:
+			term::B b(fromTP.term.lexicalForm); // @@ better idea?
+			return freeOrEquals(VarOrBNode(b), fromT);
+		    }
+		}
+		case term::TermOrVar::Var_type:
+		    return freeOrEquals(VarOrBNode(fromTP.var), fromT);
+		}
+		assert(false);
+	    }
+	};
+
+	struct Multiset : std::list<Solution> {
+	    Multiset (std::initializer_list<Solution> i) : std::list<Solution>(i) {  }
+	    std::ostream& print (std::ostream& os) const {
+		for (const_iterator it = begin(); it != end(); ++it) {
+		    if (it != begin())
+			os << "\n";
+		    it->print(os);
+		}
+		return os;
+	    }
+	};
+
+	Multiset ret{Solution{}};
 
 	for (graph::BGP::const_iterator tp = BGP.begin(); tp != BGP.end(); ++tp) {
-	    for (result::Multiset::iterator sit = ret.begin(); sit != ret.end(); ) {
-		result::Solution s = *sit;
+	    for (Multiset::iterator sit = ret.begin(); sit != ret.end(); ) {
+		Solution s = *sit;
 		sit = ret.erase(sit);
 		for (graph::Graph::const_iterator t = G.begin(); t != G.end(); ++t) {
-		    result::Solution s2 = s;
-		    if (tp->s.matches(t->s, &s2) &&
-			tp->p.matches(t->p, &s2) &&
-			tp->o.matches(t->o, &s2))
+		    Solution s2 = s;
+		    if (s2.matches(tp->s, t->s) &&
+			s2.matches(tp->p, t->p) &&
+			s2.matches(tp->o, t->o))
 			ret.insert(sit, s2);
 		}
 	    }
 	}
-	return ret;
+
+	result::Multiset r{};
+	for (Multiset::const_iterator row = ret.begin(); row != ret.end(); ++row) {
+	    result::Solution s {};
+	    for (Solution::const_iterator col = row->begin(); col != row->end(); ++col) {
+		if (col->first.t != VarOrBNode::BNode_type)
+		    s.insert(std::make_pair(col->first.var, col->second));
+	    }
+	    r.insert(r.end(), s);
+	} 
+
+	return r;
     }
 
     namespace test {
@@ -469,25 +513,51 @@ namespace eval {
 	    // std::cout << r << "\n";
 
 	    result::Multiset expected {
-		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}, {term::B("n2"), term::I("N2")}},
-		result::Solution {{term::B("n2"), term::I("N2")}, {term::Var("py"), term::I("P3")}, {term::Var("px"), term::I("P1")}} // reordered
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}},
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P3")}}
 	    };
+	    // std::cout << expected << "\n";
 	    assert(r == expected);
 
 	    result::Multiset notExpected_var {
-		result::Solution {{term::Var("px999"), term::I("P1")}, {term::Var("py"), term::I("P2")}, {term::B("n2"), term::I("N2")}},
-		result::Solution {{term::B("n2"), term::I("N2")}, {term::Var("py"), term::I("P3")}, {term::Var("px"), term::I("P1")}}
+		result::Solution {{term::Var("px999"), term::I("P1")}, {term::Var("py"), term::I("P2")}},
+		result::Solution {{term::Var("px"),    term::I("P1")}, {term::Var("py"), term::I("P3")}}
 	    };
 	    assert(r != notExpected_var);
 
 	    result::Multiset notExpected_val {
-		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}, {term::B("n2"), term::I("N2")}},
-		result::Solution {{term::B("n2"), term::I("N2")}, {term::Var("py"), term::I("P3")}, {term::Var("px"), term::I("P1999")}}
+		result::Solution {{term::Var("px"), term::I("P1999")}, {term::Var("py"), term::I("P2")}},
+		result::Solution {{term::Var("px"), term::I("P1")},    {term::Var("py"), term::I("P3")}}
 	    };
 	    assert(r != notExpected_val);
+
+	    result::Multiset notExpected_slot {
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}, {term::Var("pz"), term::I("P2")}},
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P3")}}
+	    };
+	    assert(r != notExpected_slot);
+
+	    result::Multiset notExpected_row {
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}},
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}},
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P3")}}
+	    };
+	    assert(r != notExpected_row);
+
+	    result::Multiset notExpected_noSlot {
+		result::Solution {{term::Var("px"), term::I("P1")}},
+		result::Solution {{term::Var("px"), term::I("P1")}}
+	    };
+	    assert(r != notExpected_noSlot);
+
+	    result::Multiset notExpected_noRow {
+		result::Solution {{term::Var("px"), term::I("P1")}, {term::Var("py"), term::I("P2")}}
+	    };
+	    assert(r != notExpected_noRow);
 	}
     } // namespace test
 } // namespace eval
+
 
 int main () {
     term::test::All();
@@ -495,3 +565,5 @@ int main () {
 
     return 0;
 }
+
+
