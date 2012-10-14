@@ -13,10 +13,6 @@
 #include <cassert>
 #include <functional>
 
-#define QUOTE // "\"" // uncomment to print pastable C code.
-
-namespace result { struct Solution; } // forward decl for TermOrVar::matches
-
 
 namespace term {
 
@@ -48,9 +44,9 @@ namespace term {
 
 	std::ostream& print (std::ostream& os) const {
 	    switch (Term::t) {
-	    case Term::Type::I: return os << "I("QUOTE << lexicalForm << QUOTE")";
-	    case Term::Type::L: return os << "L("QUOTE << lexicalForm << QUOTE")";
-	    case Term::Type::B: return os << "B("QUOTE << lexicalForm << QUOTE")";
+	    case Term::Type::I: return os << "I(" << lexicalForm << ")";
+	    case Term::Type::L: return os << "L(" << lexicalForm << ")";
+	    case Term::Type::B: return os << "B(" << lexicalForm << ")";
 	    }
 	    assert(false);
 	}
@@ -87,7 +83,7 @@ namespace term {
 	    return lexicalForm < r.lexicalForm;
 	}
 	std::ostream& print (std::ostream& os) const {
-	    os << "Var("QUOTE << lexicalForm << QUOTE")";
+	    os << "Var(" << lexicalForm << ")";
 	    return os;
 	}
     };
