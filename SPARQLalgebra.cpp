@@ -91,6 +91,9 @@ namespace term {
 	return ref.print(os);
     }
 
+    // Tedious union classes:
+
+    // (RDF-T ∪ V)
     struct TermOrVar {
 	enum class Type { Term, Var };
 	Type t;
@@ -112,18 +115,10 @@ namespace term {
 	}
 	bool operator< (const TermOrVar& r) const {
 	    switch (t) {
-	    case Type::Term: {
-		return
-		    r.t == Type::Term
-		    ? term < r.term
-		    : r.t < Type::Term;
-	    }
-	    case Type::Var: {
-		return
-		    r.t == Type::Var
-		    ? var  < r.var
-		    : r.t < Type::Var;
-	    }
+	    case Type::Term:
+		return r.t == Type::Term ? term < r.term : r.t < Type::Term;
+	    case Type::Var:
+		return r.t == Type::Var ? var  < r.var : r.t < Type::Var;
 	    default: assert(false);
 	    }
 	}
@@ -135,10 +130,52 @@ namespace term {
 	    assert(false);
 	}
     };
-
     std::ostream& operator<< (std::ostream& os, const TermOrVar& tov) {
 	return tov.print(os);
     }
+
+    // (I ∪ V)
+    struct IOrVar {
+	enum class Type { I, Var };
+	Type t;
+	I i;
+	Var var;
+	IOrVar (I i)
+	    : t(Type::I), i(i), var(Var("!")) { check(); }
+	IOrVar (Var var)
+	    : t(Type::Var), i(I("!")), var(var) { check(); }
+	void check () {
+	    assert(t == Type::I || t == Type::Var);
+	}
+	bool operator== (const IOrVar& r) const {
+	    switch (t) {
+	    case Type::I: return r.t == Type::I && i == r.i;
+	    case Type::Var:  return r.t == Type::Var  && var  == r.var;
+	    default: assert(false);
+	    }
+	}
+	bool operator< (const IOrVar& r) const {
+	    switch (t) {
+	    case Type::I:
+		return r.t == Type::I ? i < r.i : r.t < Type::I;
+	    case Type::Var:
+		return r.t == Type::Var ? var  < r.var : r.t < Type::Var;
+	    default: assert(false);
+	    }
+	}
+	std::ostream& print (std::ostream& os) const {
+	    switch (t) {
+	    case Type::I:  return os << i;
+	    case Type::Var:   return os << var;
+	    }
+	    assert(false);
+	}
+    };
+
+    std::ostream& operator<< (std::ostream& os, const IOrVar& iov) {
+	return iov.print(os);
+    }
+
 
     namespace test {
 	void All () {
@@ -147,6 +184,9 @@ namespace term {
 	    // std::cout << i1 << (i1 == i3 ? "==" : "!=") << i3 << std::endl;
 	    assert(i1 == i2);
 	    assert(!(i1 == i3));
+
+	    I i("X"); B b("X"); L l("X");
+	    assert(!(i == b) && !(b == l) && !(i == l));
 	}
     };
 
@@ -155,8 +195,10 @@ namespace term {
 
 namespace graph {
     struct Triple {
-	term::Term s, p, o;
-	Triple (term::Term s, term::Term p, term::Term o)
+	term::Term s;
+	term::I p;
+	term::Term o;
+	Triple (term::Term s, term::I p, term::Term o)
 	    : s(s), p(p), o(o) {  }
 	bool operator< (const Triple& r) const {
 	    return
@@ -191,8 +233,10 @@ namespace graph {
     // Definition: Triple Pattern
     // http://www.w3.org/2009/sparql/docs/query-1.1/rq25.xml#defn_TriplePattern
     struct TriplePattern {
-	term::TermOrVar s, p, o;
-	TriplePattern (term::TermOrVar s, term::TermOrVar p, term::TermOrVar o)
+	term::TermOrVar s;
+	term::IOrVar p;
+	term::TermOrVar o;
+	TriplePattern (term::TermOrVar s, term::IOrVar p, term::TermOrVar o)
 	    : s(s), p(p), o(o) {  }
 	bool operator< (const TriplePattern& r) const {
 	    return
@@ -450,6 +494,15 @@ namespace eval {
 		    }
 		}
 		case term::TermOrVar::Type::Var:
+		    return freeOrEquals(VarOrBNode(fromTP.var), fromT);
+		}
+		assert(false);
+	    }
+	    bool matches (const term::IOrVar fromTP, const term::I& fromT) {
+		switch (fromTP.t) {
+		case term::IOrVar::Type::I:
+		    return fromTP.i == fromT;
+		case term::IOrVar::Type::Var:
 		    return freeOrEquals(VarOrBNode(fromTP.var), fromT);
 		}
 		assert(false);
