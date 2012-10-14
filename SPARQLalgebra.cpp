@@ -235,8 +235,10 @@ namespace graph {
 namespace result {
 
     // μ
-    struct Solution : std::map<term::Var, term::Term> {
-	Solution (std::initializer_list<std::map<term::Var, term::Term>::value_type> l) : std::map<term::Var, term::Term>(l) {  }
+    typedef std::map<term::Var, term::Term> SolutionContainer;
+    struct Solution : SolutionContainer {
+	Solution (std::initializer_list<SolutionContainer::value_type> l)
+	    : SolutionContainer(l) {  }
 	std::ostream& print (std::ostream& os) const {
 	    for (const_iterator it = begin(); it != end(); ++it) {
 		if (it != begin())
@@ -259,7 +261,8 @@ namespace result {
 
     // Ω
     struct Multiset : std::list<Solution> {
-	Multiset (std::initializer_list<Solution> i) : std::list<Solution>(i) {  }
+	Multiset (std::initializer_list<Solution> i)
+	    : std::list<Solution>(i) {  }
 	std::ostream& print (std::ostream& os) const {
 	    for (const_iterator it = begin(); it != end(); ++it) {
 		if (it != begin())
@@ -415,8 +418,10 @@ namespace eval {
 	};
 
 	// Solution - same as result::Solution except it permits BNodes.
-        struct Solution : std::map<VarOrBNode, term::Term> {
-	    Solution (std::initializer_list<std::map<VarOrBNode, term::Term>::value_type> l) : std::map<VarOrBNode, term::Term>(l) {  }
+	typedef std::map<VarOrBNode, term::Term> SolutionContainer;
+        struct Solution : SolutionContainer {
+	    Solution (std::initializer_list<SolutionContainer::value_type> l)
+		: SolutionContainer(l) {  }
 	    std::ostream& print (std::ostream& os) const {
 		for (const_iterator it = begin(); it != end(); ++it) {
 		    if (it != begin())
@@ -457,7 +462,8 @@ namespace eval {
 
 	// Multiset - same as result::Multiset except it permits BNodes.
 	struct Multiset : std::list<Solution> {
-	    Multiset (std::initializer_list<Solution> i) : std::list<Solution>(i) {  }
+	    Multiset (std::initializer_list<Solution> i)
+		: std::list<Solution>(i) {  }
 	    std::ostream& print (std::ostream& os) const {
 		for (const_iterator it = begin(); it != end(); ++it) {
 		    if (it != begin())
