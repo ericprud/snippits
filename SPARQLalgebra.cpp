@@ -23,7 +23,7 @@ namespace term {
     // Definition: RDF Term
     // http://www.w3.org/2009/sparql/docs/query-1.1/rq25.xml#defn_RDFTerm
     struct Term {
-	typedef enum { I_type, L_type, B_type } Type;
+	enum class Type { I, L, B };
 	Type t;
 	std::string lexicalForm;
 
@@ -31,7 +31,7 @@ namespace term {
 	    : t(t), lexicalForm(lexicalForm) { check(); }
 
 	void check () {
-	    assert(t == I_type || t == L_type || t == B_type);
+	    assert(t == Type::I || t == Type::L || t == Type::B);
 	}
 
 	bool operator== (const Term& r) const {
@@ -48,9 +48,9 @@ namespace term {
 
 	std::ostream& print (std::ostream& os) const {
 	    switch (Term::t) {
-	    case Term::I_type: return os << "I("QUOTE << lexicalForm << QUOTE")";
-	    case Term::L_type: return os << "L("QUOTE << lexicalForm << QUOTE")";
-	    case Term::B_type: return os << "B("QUOTE << lexicalForm << QUOTE")";
+	    case Term::Type::I: return os << "I("QUOTE << lexicalForm << QUOTE")";
+	    case Term::Type::L: return os << "L("QUOTE << lexicalForm << QUOTE")";
+	    case Term::Type::B: return os << "B("QUOTE << lexicalForm << QUOTE")";
 	    }
 	    assert(false);
 	}
@@ -61,17 +61,17 @@ namespace term {
 
     struct I : Term {
 	I (std::string lexicalForm)
-	    : Term (Term::I_type, lexicalForm) {  }
+	    : Term (Term::Type::I, lexicalForm) {  }
     };
 
     struct L : Term {
 	L (std::string lexicalForm)
-	    : Term (Term::L_type, lexicalForm) {  }
+	    : Term (Term::Type::L, lexicalForm) {  }
     };
 
     struct B : Term {
 	B (std::string lexicalForm)
-	    : Term (Term::B_type, lexicalForm) {  }
+	    : Term (Term::Type::B, lexicalForm) {  }
     };
 
     // Definition: Query Variable
@@ -96,45 +96,45 @@ namespace term {
     }
 
     struct TermOrVar {
-	typedef enum { Term_type, Var_type } Type;
+	enum class Type { Term, Var };
 	Type t;
 	Term term;
 	Var var;
 	TermOrVar (Term term)
-	    : t(Term_type), term(term), var(Var("!")) { check(); }
+	    : t(Type::Term), term(term), var(Var("!")) { check(); }
 	TermOrVar (Var var)
-	    : t(Var_type), term(I("!")), var(var) { check(); }
+	    : t(Type::Var), term(I("!")), var(var) { check(); }
 	void check () {
-	    assert(t == Term_type || t == Var_type);
+	    assert(t == Type::Term || t == Type::Var);
 	}
 	bool operator== (const TermOrVar& r) const {
 	    switch (t) {
-	    case Term_type: return r.t == Term_type && term == r.term;
-	    case Var_type:  return r.t == Var_type  && var  == r.var;
+	    case Type::Term: return r.t == Type::Term && term == r.term;
+	    case Type::Var:  return r.t == Type::Var  && var  == r.var;
 	    default: assert(false);
 	    }
 	}
 	bool operator< (const TermOrVar& r) const {
 	    switch (t) {
-	    case Term_type: {
+	    case Type::Term: {
 		return
-		    r.t == Term_type
+		    r.t == Type::Term
 		    ? term < r.term
-		    : r.t < Term_type;
+		    : r.t < Type::Term;
 	    }
-	    case Var_type: {
+	    case Type::Var: {
 		return
-		    r.t == Var_type
+		    r.t == Type::Var
 		    ? var  < r.var
-		    : r.t < Var_type;
+		    : r.t < Type::Var;
 	    }
 	    default: assert(false);
 	    }
 	}
 	std::ostream& print (std::ostream& os) const {
 	    switch (t) {
-	    case Term_type:  return os << term;
-	    case Var_type:   return os << var;
+	    case Type::Term:  return os << term;
+	    case Type::Var:   return os << var;
 	    }
 	    assert(false);
 	}
@@ -282,67 +282,67 @@ namespace result {
 
 namespace path {
     struct PathElt {
-	typedef enum { link_type, inv_type, NPS_type,
-		       seq_type, alt_type, ZeroOrMorePath_type,
-		       OneOrMorePath_type, ZeroOrOnePath_type } Type;
+	enum class Type {
+	    link, inv, NPS, seq, alt, ZeroOrMorePath, OneOrMorePath, ZeroOrOnePath
+	};
 	Type t;
 	PathElt (Type t)
 	    : t(t) { check(); }
 	void check () {
-	    assert(t == link_type || t == inv_type || t == NPS_type ||
-		   t ==seq_type || t ==alt_type || t ==ZeroOrMorePath_type
-		   || t ==OneOrMorePath_type || t ==ZeroOrOnePath_type);
+	    assert(t == Type::link || t == Type::inv || t == Type::NPS ||
+		   t == Type::seq || t == Type::alt || t == Type::ZeroOrMorePath
+		   || t == Type::OneOrMorePath || t == Type::ZeroOrOnePath);
 	}
     };
 
     struct link : PathElt {
 	const term::I& i;
 	link (const term::I& i)
-	    : PathElt(PathElt::link_type), i(i) {  }
+	    : PathElt(PathElt::Type::link), i(i) {  }
     };
 
     struct inv : PathElt {
 	const PathElt& p;
 	inv (const PathElt& p)
-	    : PathElt(PathElt::inv_type), p(p) {  }
+	    : PathElt(PathElt::Type::inv), p(p) {  }
     };
 
     struct NPS : PathElt {
     	std::set<std::reference_wrapper<const term::I> > s;
     	NPS (std::set<std::reference_wrapper<const term::I> > s)
-	    : PathElt(PathElt::NPS_type), s(s) {  }
+	    : PathElt(PathElt::Type::NPS), s(s) {  }
     };
 
     struct seq : PathElt {
 	const PathElt& l;
 	const PathElt& r;
 	seq (const PathElt& l, const PathElt& r)
-	    : PathElt(PathElt::seq_type), l(l), r(r) {  }
+	    : PathElt(PathElt::Type::seq), l(l), r(r) {  }
     };
 
     struct alt : PathElt {
 	const PathElt& l;
 	const PathElt& r;
 	alt (const PathElt& l, const PathElt& r)
-	    : PathElt(PathElt::alt_type), l(l), r(r) {  }
+	    : PathElt(PathElt::Type::alt), l(l), r(r) {  }
     };
 
     struct ZeroOrMorePath : PathElt {
 	const PathElt& p;
 	ZeroOrMorePath (const PathElt& p)
-	    : PathElt(PathElt::ZeroOrMorePath_type), p(p) {  }
+	    : PathElt(PathElt::Type::ZeroOrMorePath), p(p) {  }
     };
 
     struct OneOrMorePath : PathElt {
 	const PathElt& p;
 	OneOrMorePath (const PathElt& p)
-	    : PathElt(PathElt::OneOrMorePath_type), p(p) {  }
+	    : PathElt(PathElt::Type::OneOrMorePath), p(p) {  }
     };
 
     struct ZeroOrOnePath : PathElt {
 	const PathElt& p;
 	ZeroOrOnePath (const PathElt& p)
-	    : PathElt(PathElt::ZeroOrOnePath_type), p(p) {  }
+	    : PathElt(PathElt::Type::ZeroOrOnePath), p(p) {  }
     };
 
     struct Path {
@@ -364,67 +364,59 @@ namespace eval {
     // Definition: Basic Graph Pattern Matching
     // http://www.w3.org/TR/sparql11-query/#BGPsparql
     result::Multiset BasicGraphPatternMatching (graph::BGP& BGP, graph::Graph& G) {
+
 	/* term::VarOrBNode captures the types serving as variables in a Solution.
 	   Including BNodes allows one algorithm to handle both variable binding
 	   and BNode-isomorphism.
 	*/
 	struct VarOrBNode {
-	    typedef enum { Var_type, BNode_type,  } Type;
+	    enum class Type { Var, BNode };
 	    Type t;
 	    term::Var var;
 	    term::B bnode;
 
 	    VarOrBNode (term::Var var)
-		: t(Var_type), var(var), bnode(term::B("!")) { check(); }
+		: t(Type::Var), var(var), bnode(term::B("!")) { check(); }
 	    VarOrBNode (term::B bnode)
-		: t(BNode_type), var(term::Var("!")), bnode(bnode) { check(); }
+		: t(Type::BNode), var(term::Var("!")), bnode(bnode) { check(); }
 	    void check () {
-		assert(t == Var_type || t == BNode_type);
+		assert(t == Type::Var || t == Type::BNode);
 	    }
 	    bool operator== (const VarOrBNode& r) const {
 		switch (t) {
-		case Var_type:   return r.t == Var_type   && var   == r.var;
-		case BNode_type: return r.t == BNode_type && bnode == r.bnode;
+		case Type::Var:   return r.t == Type::Var   && var   == r.var;
+		case Type::BNode: return r.t == Type::BNode && bnode == r.bnode;
 		default: assert(false);
 		}
 	    }
 	    bool operator< (const VarOrBNode& r) const {
 		switch (t) {
-		case Var_type: {
+		case Type::Var: {
 		    return
-			r.t == Var_type
+			r.t == Type::Var
 			? var < r.var
-			: r.t < Var_type;
+			: r.t < Type::Var;
 		}
-		case BNode_type: {
+		case Type::BNode: {
 		    return
-			r.t == BNode_type
+			r.t == Type::BNode
 			? bnode < r.bnode
-			: r.t < BNode_type;
+			: r.t < Type::BNode;
 		}
 		default: assert(false);																}
 	    }
 	    std::ostream& print (std::ostream& os) const {
 		switch (t) {
-		case Var_type:   return os << var;
-		case BNode_type: return os << bnode;
+		case Type::Var:   return os << var;
+		case Type::BNode: return os << bnode;
 		}
 		assert(false);
 	    }
 	};
 
-	/* Solution - same as result::Solution except it permits BNodes.
-	 */
+	// Solution - same as result::Solution except it permits BNodes.
         struct Solution : std::map<VarOrBNode, term::Term> {
 	    Solution (std::initializer_list<std::map<VarOrBNode, term::Term>::value_type> l) : std::map<VarOrBNode, term::Term>(l) {  }
-	    bool freeOrEquals (const VarOrBNode v, const term::Term k) {
-		iterator it = find(v);
-		if (it == end()) {
-		    insert(std::make_pair(v, k));
-		    return true;
-		}
-		return it->second == k;
-	    }
 	    std::ostream& print (std::ostream& os) const {
 		for (const_iterator it = begin(); it != end(); ++it) {
 		    if (it != begin())
@@ -435,24 +427,35 @@ namespace eval {
 		}
 		return os;
 	    }
+
+	    // additional functions to support BGP matching.
+	    bool freeOrEquals (const VarOrBNode v, const term::Term k) {
+		iterator it = find(v);
+		if (it == end()) {
+		    insert(std::make_pair(v, k));
+		    return true;
+		}
+		return it->second == k;
+	    }
 	    bool matches (const term::TermOrVar fromTP, const term::Term& fromT) {
 		switch (fromTP.t) {
-		case term::TermOrVar::Term_type: {
+		case term::TermOrVar::Type::Term: {
 		    switch (fromTP.term.t) {
-		    case term::Term::I_type: return fromTP.term == fromT;
-		    case term::Term::L_type: return fromTP.term == fromT;
-		    case term::Term::B_type:
+		    case term::Term::Type::I: return fromTP.term == fromT;
+		    case term::Term::Type::L: return fromTP.term == fromT;
+		    case term::Term::Type::B:
 			term::B b(fromTP.term.lexicalForm); // @@ better idea?
 			return freeOrEquals(VarOrBNode(b), fromT);
 		    }
 		}
-		case term::TermOrVar::Var_type:
+		case term::TermOrVar::Type::Var:
 		    return freeOrEquals(VarOrBNode(fromTP.var), fromT);
 		}
 		assert(false);
 	    }
 	};
 
+	// Multiset - same as result::Multiset except it permits BNodes.
 	struct Multiset : std::list<Solution> {
 	    Multiset (std::initializer_list<Solution> i) : std::list<Solution>(i) {  }
 	    std::ostream& print (std::ostream& os) const {
@@ -465,33 +468,35 @@ namespace eval {
 	    }
 	};
 
-	Multiset ret{Solution{}};
+	Multiset bindings{Solution{}}; // 1 row, 0 var/bnode bindings.
 
+	// Explore permutations of the graph, populating var/bnode bindings.
 	for (graph::BGP::const_iterator tp = BGP.begin(); tp != BGP.end(); ++tp) {
-	    for (Multiset::iterator sit = ret.begin(); sit != ret.end(); ) {
+	    for (Multiset::iterator sit = bindings.begin(); sit != bindings.end(); ) {
 		Solution s = *sit;
-		sit = ret.erase(sit);
+		sit = bindings.erase(sit);
 		for (graph::Graph::const_iterator t = G.begin(); t != G.end(); ++t) {
 		    Solution s2 = s;
 		    if (s2.matches(tp->s, t->s) &&
 			s2.matches(tp->p, t->p) &&
 			s2.matches(tp->o, t->o))
-			ret.insert(sit, s2);
+			bindings.insert(sit, s2);
 		}
 	    }
 	}
 
-	result::Multiset r{};
-	for (Multiset::const_iterator row = ret.begin(); row != ret.end(); ++row) {
+	// Return only the Var bindings (remove BNode mappings).
+	result::Multiset ret{};
+	for (Multiset::const_iterator row = bindings.begin(); row != bindings.end(); ++row) {
 	    result::Solution s {};
 	    for (Solution::const_iterator col = row->begin(); col != row->end(); ++col) {
-		if (col->first.t != VarOrBNode::BNode_type)
+		if (col->first.t == VarOrBNode::Type::Var)
 		    s.insert(std::make_pair(col->first.var, col->second));
 	    }
-	    r.insert(r.end(), s);
+	    ret.insert(ret.end(), s);
 	} 
 
-	return r;
+	return ret;
     }
 
     namespace test {
