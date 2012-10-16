@@ -27,22 +27,26 @@ namespace term {
 
 	Term (Type t, std::string lexicalForm)
 	    : t(t), lexicalForm(lexicalForm) { check(); }
+	// Term (const Term&)
+	// { assert(false); }
 
 	void check () {
 	    assert(t == Type::I || t == Type::L || t == Type::B);
 	}
 
-	bool operator== (const Term& r) const {
-	    return
-		Term::t == r.Term::t && lexicalForm == r.lexicalForm;
-	}
+	// moved to free function
+	// bool operator== (const Term& r) const {
+	//     return
+	// 	Term::t == r.Term::t && lexicalForm == r.lexicalForm;
+	// }
 
-	bool operator< (const Term& r) const {
-	    return
-		Term::t == r.Term::t
-		? lexicalForm < r.lexicalForm
-		: Term::t < r.Term::t;
-	}
+	// moved to free function
+	// bool operator< (const Term& r) const {
+	//     return
+	// 	Term::t == r.Term::t
+	// 	? lexicalForm < r.lexicalForm
+	// 	: Term::t < r.Term::t;
+	// }
 
 	std::ostream& print (std::ostream& os) const {
 	    switch (Term::t) {
@@ -56,11 +60,16 @@ namespace term {
     std::ostream& operator<< (std::ostream& os, const Term& ref) {
 	return ref.print(os);
     }
+    bool operator== (const Term& l, const Term& r) {
+	return
+	    l.Term::t == r.Term::t && l.lexicalForm == r.lexicalForm;
+    }
 
     struct I : Term {
 	I (std::string lexicalForm)
 	    : Term (Term::Type::I, lexicalForm) {  }
     };
+    bool operator<(const Term& a, const Term& b) {return a.lexicalForm < b.lexicalForm;}
     bool operator<(const I& a, const I& b) {return a.lexicalForm < b.lexicalForm;}
 
     struct L : Term {
@@ -233,6 +242,22 @@ namespace graph {
 	return ref.print(os);
     }
 
+    // Definition: Node set of a graph
+    // http://www.w3.org/2009/sparql/docs/query-1.1/rq25.xml#defn_nodeSet
+    std::set<std::reference_wrapper<const term::Term> > NodeSet (const Graph& G) {
+	std::set<std::reference_wrapper<const term::Term> > ret;
+	for (auto triple: G) {
+	    std::cerr << "triple: " << triple << "\n";
+	    ret.insert(triple.s);
+	    ret.insert(triple.o);
+	    std::cerr << "ret:"; for (std::set<std::reference_wrapper<const term::Term> >::const_iterator it = ret.begin(); it != ret.end(); ++it) {
+		const term::Term& t = *it;
+		std::cerr << " " << t;
+	    } std::cerr << "\n";
+	}
+	return ret;
+    }
+
     // Definition: Triple Pattern
     // http://www.w3.org/2009/sparql/docs/query-1.1/rq25.xml#defn_TriplePattern
     struct TriplePattern {
@@ -271,6 +296,25 @@ namespace graph {
     };
     std::ostream& operator<< (std::ostream& os, const BGP& ref) {
 	return ref.print(os);
+    }
+
+    namespace test {
+	void All () {
+	    graph::Graph g {
+		graph::Triple(term::I("n1"), term::I("p1"), term::I("n2")),
+		graph::Triple(term::I("n2"), term::I("p2"), term::L("l3")),
+		graph::Triple(term::I("n2"), term::I("p3"), term::L("l3"))
+	    };
+	    term::I n1("n1"), n2("n2");
+	    term::L l3("l3");
+	    std::set<std::reference_wrapper<const term::Term> > expect {n1, n2, l3};
+	    auto got = NodeSet(g);
+	    std::cerr << "expect:"; for (std::set<std::reference_wrapper<const term::Term> >::const_iterator it = expect.begin(); it != expect.end(); ++it) {
+		const term::Term& t = *it;
+		std::cerr << " " << t;
+	    } std::cerr << "\n";
+	    assert(NodeSet(g) == expect);
+	}
     }
 } // namespace graph
 
@@ -909,6 +953,7 @@ namespace path {
 int main () {
     term::test::All();
     eval::test::All();
+    // graph::test::All();
     result::test::All();
     path::test::All();
 
